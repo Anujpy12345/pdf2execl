@@ -1,9 +1,12 @@
 # PHP CLI image
 FROM php:8.2-cli
 
-# Install required packages
+# Install system dependencies + PHP extensions
 RUN apt-get update && \
-    apt-get install -y poppler-utils unzip git curl && \
+    apt-get install -y poppler-utils unzip git curl libzip-dev && \
+    docker-php-ext-install zip && \
+    docker-php-ext-install mbstring && \
+    docker-php-ext-install xml && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Composer
