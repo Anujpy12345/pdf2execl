@@ -1,27 +1,41 @@
-# PHP CLI image
+# Base image
 FROM php:8.2-cli
-
-# Install system dependencies + PHP extensions
-RUN apt-get update && \
-    apt-get install -y poppler-utils unzip git curl libzip-dev && \
-    docker-php-ext-install zip && \
-    docker-php-ext-install mbstring && \
-    docker-php-ext-install xml && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Set working directory
 WORKDIR /app
 
+# Install system dependencies
+# - poppler-utils: for pdftotext
+# - libzip-dev: for zip extension
+# - libxml2-dev: for xml extension
+# - libonig-dev: for mbstring extension
+# - git, unzip, curl: utilities
+RUN apt-get update && apt-get install -y \
+    poppler-utils \
+    git \
+    unzip \
+    curl \
+    libzip-dev \
+    libxml2-dev \
+    libonig-dev \
+    && docker-php-ext-install zip mbstring xml \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copy composer config
+COPY composer.json ./
+
+# Install PHP dependencies
+# Using --no-scripts to prevent auto-scripts from running before code is present
+RUN composer install --no-dev --optimize-autoloader --no-scripts --prefer-dist
+
 # Copy project files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-interaction --prefer-dist
-
-# Expose port
+# Expose the required port
 EXPOSE 10000
 
 # Start PHP built-in server
